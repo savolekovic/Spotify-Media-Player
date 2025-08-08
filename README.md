@@ -96,7 +96,7 @@ spotify.redirect.uri=https://localhost:3000
 
 ## Office IP Restriction (optional)
 
-See `IP_RESTRICTION_GUIDE.md` for enabling office-only access via CIDR ranges. Update `ALLOWED_IP_RANGES` in `backend-server.js`.
+See `IP_RESTRICTION_GUIDE.md` for enabling office-only access via CIDR ranges. Use `middleware/officeOnly.js` and uncomment the middleware block in `backend-server.js` to enable.
 
 ## Developer Notes
 
