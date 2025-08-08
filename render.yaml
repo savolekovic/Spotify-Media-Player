@@ -1,0 +1,30 @@
+services:
+  # Backend Spring Boot Service
+  - type: web
+    name: spotify-media-player-backend
+    env: java
+    buildCommand: cd backend && ./mvnw clean package -DskipTests
+    startCommand: cd backend && java -jar target/spotify-media-player-0.0.1-SNAPSHOT.jar
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: production
+      - key: SPOTIFY_CLIENT_ID
+        sync: false
+      - key: SPOTIFY_CLIENT_SECRET
+        sync: false
+      - key: SPOTIFY_REDIRECT_URI
+        value: https://spotify-media-player-frontend.onrender.com
+
+  # Frontend Node.js Service
+  - type: web
+    name: spotify-media-player-frontend
+    env: node
+    buildCommand: cd frontend && npm install
+    startCommand: cd frontend && node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: BACKEND_URL
+        value: https://spotify-media-player-backend.onrender.com
