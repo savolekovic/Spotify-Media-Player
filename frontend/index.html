@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spotify Media Player</title>
+    <title>Office Spotify Queue</title>
     <style>
         * {
             margin: 0;
@@ -89,39 +89,6 @@
         .track-details p {
             color: #ccc;
             font-size: 14px;
-        }
-
-        .controls {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin-top: 20px;
-        }
-
-        .control-btn {
-            background: rgba(255, 255, 255, 0.2);
-            border: none;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            color: white;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-        }
-
-        .control-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: scale(1.1);
-        }
-
-        .play-btn {
-            width: 60px;
-            height: 60px;
-            background: #1DB954;
         }
 
         .progress-bar {
@@ -233,23 +200,37 @@
             margin-bottom: 20px;
             color: #1DB954;
         }
+
+        .info-box {
+            background: rgba(29, 185, 84, 0.1);
+            border: 1px solid #1DB954;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .info-box p {
+            color: #ccc;
+            font-size: 14px;
+            line-height: 1.5;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="auth-section">
-            <h1>🎵 Spotify Media Player</h1>
-            <p style="margin: 20px 0; color: #ccc;">Connect your Spotify account to start playing music</p>
+            <h1>🎵 Office Spotify Queue</h1>
+            <p style="margin: 20px 0; color: #ccc;">Connect your Spotify account to manage the office music queue</p>
             <button class="connect-btn" onclick="connectSpotify()">Connect to Spotify</button>
-            <br><br>
-            <button class="connect-btn" onclick="logout()" style="background: #e74c3c;">Logout (Debug)</button>
-            <br><br>
-            <button class="connect-btn" onclick="clearAllTokens()" style="background: #f39c12;">Clear All Tokens (Debug)</button>
-            <br><br>
-            <button class="connect-btn" onclick="forceUnauthorized()" style="background: #9b59b6;">Force Logout (Debug)</button>
         </div>
 
         <div class="player-section" id="playerSection">
+            <div class="info-box">
+                <p><strong>Office Mode:</strong> Anyone can add songs to the queue and view what's playing. 
+                Use your phone or Spotify app to control playback (play/pause/next/previous).</p>
+            </div>
+
             <div class="now-playing">
                 <div class="track-info">
                     <img class="album-art" id="albumArt" src="" alt="Album Art">
@@ -266,12 +247,6 @@
                     <span id="currentTime">0:00</span>
                     <span id="totalTime">0:00</span>
                 </div>
-
-                <div class="controls">
-                    <button class="control-btn" onclick="previousTrack()">⏮</button>
-                    <button class="control-btn play-btn" onclick="togglePlayback()" id="playBtn">▶</button>
-                    <button class="control-btn" onclick="nextTrack()">⏭</button>
-                </div>
             </div>
 
             <div class="queue-section">
@@ -284,9 +259,9 @@
                     <div class="status">Enter a search term to find tracks</div>
                 </div>
 
-                <h2 style="margin-top: 30px;">Queue</h2>
+                <h2 style="margin-top: 30px;">Current Queue</h2>
                 <div class="queue-list" id="queueList">
-                    <div class="status">Queue is empty</div>
+                    <div class="status">Loading queue...</div>
                 </div>
             </div>
         </div>
@@ -352,6 +327,27 @@
             }
         }
 
+        async function getQueue() {
+            if (!isAuthenticated) return;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/queue`, {
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    displayQueue(data.queue || []);
+                } else if (response.status === 401) {
+                    // Token expired or invalid
+                    isAuthenticated = false;
+                    showAuthSection();
+                }
+            } catch (error) {
+                console.error('Error getting queue:', error);
+            }
+        }
+
         async function checkAuthenticationStatus() {
             console.log('Checking authentication status...');
             try {
@@ -366,6 +362,7 @@
                     isAuthenticated = true;
                     showPlayerSection();
                     getCurrentPlayback();
+                    getQueue();
                 } else if (response.status === 401) {
                     // User not authenticated
                     console.log('User not authenticated (401), staying on auth section');
@@ -431,6 +428,7 @@
                         isAuthenticated = true;
                         showPlayerSection();
                         getCurrentPlayback();
+                        getQueue();
                     } else {
                         console.error('Authentication failed:', data);
                         alert('Authentication failed. Please try again.');
@@ -449,11 +447,14 @@
             document.querySelector('.auth-section').style.display = 'none';
             document.querySelector('.player-section').style.display = 'block';
             
-            // Start polling for current playback
+            // Start polling for current playback and queue
             if (playbackInterval) {
                 clearInterval(playbackInterval);
             }
-            playbackInterval = setInterval(getCurrentPlayback, 1000);
+            playbackInterval = setInterval(() => {
+                getCurrentPlayback();
+                getQueue();
+            }, 2000);
         }
 
         function showAuthSection() {
@@ -475,7 +476,6 @@
                 document.getElementById('progress').style.width = '0%';
                 document.getElementById('currentTime').textContent = '0:00';
                 document.getElementById('totalTime').textContent = '0:00';
-                document.getElementById('playBtn').textContent = '▶';
                 isPlaying = false;
                 return;
             }
@@ -494,70 +494,7 @@
             document.getElementById('currentTime').textContent = formatTime(progressMs);
             document.getElementById('totalTime').textContent = formatTime(track.duration_ms);
             
-            const playBtn = document.getElementById('playBtn');
-            playBtn.textContent = playing ? '⏸' : '▶';
             isPlaying = playing;
-        }
-
-        async function togglePlayback() {
-            if (!isAuthenticated) return;
-
-            try {
-                const endpoint = isPlaying ? '/pause' : '/play';
-                const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-                    method: 'POST',
-                    credentials: 'include'
-                });
-                
-                if (response.ok) {
-                    isPlaying = !isPlaying;
-                    document.getElementById('playBtn').textContent = isPlaying ? '⏸' : '▶';
-                    // Refresh playback state after a short delay
-                    setTimeout(getCurrentPlayback, 500);
-                } else {
-                    console.error('Failed to toggle playback');
-                }
-            } catch (error) {
-                console.error('Error toggling playback:', error);
-            }
-        }
-
-        async function previousTrack() {
-            if (!isAuthenticated) return;
-            
-            try {
-                const response = await fetch(`${API_BASE_URL}/previous`, {
-                    method: 'POST',
-                    credentials: 'include'
-                });
-                
-                if (response.ok) {
-                    setTimeout(getCurrentPlayback, 500);
-                } else {
-                    console.error('Failed to go to previous track');
-                }
-            } catch (error) {
-                console.error('Error going to previous track:', error);
-            }
-        }
-
-        async function nextTrack() {
-            if (!isAuthenticated) return;
-            
-            try {
-                const response = await fetch(`${API_BASE_URL}/next`, {
-                    method: 'POST',
-                    credentials: 'include'
-                });
-                
-                if (response.ok) {
-                    setTimeout(getCurrentPlayback, 500);
-                } else {
-                    console.error('Failed to go to next track');
-                }
-            } catch (error) {
-                console.error('Error going to next track:', error);
-            }
         }
 
         let searchTimeout;
@@ -610,6 +547,26 @@
             document.getElementById('searchResults').innerHTML = resultsHtml;
         }
 
+        function displayQueue(queue) {
+            if (queue.length === 0) {
+                document.getElementById('queueList').innerHTML = '<div class="status">Queue is empty</div>';
+                return;
+            }
+
+            const queueHtml = queue.map((track, index) => `
+                <div class="track-item">
+                    <img src="${track.album?.images?.[2]?.url || track.album?.images?.[0]?.url || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjMzMzMzMzIi8+Cjx0ZXh0IHg9IjIwIiB5PSIyNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE2IiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+4p2qPC90ZXh0Pgo8L3N2Zz4K'}" alt="Album">
+                    <div class="track-item-info">
+                        <h4>${escapeHtml(track.name)}</h4>
+                        <p>${track.artists?.map(a => escapeHtml(a.name)).join(', ') || 'Unknown Artist'}</p>
+                    </div>
+                    <span style="color: #1DB954; font-size: 12px;">#${index + 1}</span>
+                </div>
+            `).join('');
+
+            document.getElementById('queueList').innerHTML = queueHtml;
+        }
+
         async function addToQueue(trackUri, buttonElement) {
             if (!isAuthenticated) return;
 
@@ -636,28 +593,14 @@
                         buttonElement.disabled = false;
                     }, 2000);
                     
-                    updateQueueDisplay();
+                    // Refresh queue display
+                    getQueue();
                 } else {
                     console.error('Failed to add track to queue');
                 }
             } catch (error) {
                 console.error('Error adding to queue:', error);
             }
-        }
-
-        function updateQueueDisplay() {
-            // For now, just show a success message
-            // In a full implementation, you could fetch the actual queue from Spotify
-            const queueHtml = `
-                <div class="track-item">
-                    <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjMURCOTU0Ii8+Cjx0ZXh0IHg9IjIwIiB5PSIyNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE2IiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+4p2qPC90ZXh0Pgo8L3N2Zz4K" alt="Album">
-                    <div class="track-item-info">
-                        <h4>Track added to queue</h4>
-                        <p>Check your Spotify app to see the full queue</p>
-                    </div>
-                </div>
-            `;
-            document.getElementById('queueList').innerHTML = queueHtml;
         }
 
         function formatTime(ms) {
@@ -671,72 +614,6 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
-        }
-
-        async function logout() {
-            try {
-                const response = await fetch(`${API_BASE_URL}/logout`, {
-                    method: 'POST',
-                    credentials: 'include'
-                });
-                if (response.ok) {
-                    console.log('Logout successful');
-                    isAuthenticated = false;
-                    showAuthSection();
-                    alert('Logged out successfully!');
-                } else {
-                    console.error('Logout failed:', response.status, response.statusText);
-                    alert('Failed to log out. Please try again.');
-                }
-            } catch (error) {
-                console.error('Error during logout:', error);
-                alert('Failed to log out. Please try again.');
-            }
-        }
-
-        async function clearAllTokens() {
-            if (!confirm('Are you sure you want to clear all Spotify tokens from the database? This action cannot be undone.')) {
-                return;
-            }
-            try {
-                const response = await fetch(`${API_BASE_URL}/debug/clear-all-tokens`, {
-                    method: 'POST',
-                    credentials: 'include'
-                });
-                if (response.ok) {
-                    console.log('All tokens cleared successfully');
-                    alert('All Spotify tokens have been cleared from the database.');
-                    isAuthenticated = false;
-                    showAuthSection();
-                } else {
-                    console.error('Failed to clear tokens:', response.status, response.statusText);
-                    alert('Failed to clear tokens. Please try again.');
-                }
-            } catch (error) {
-                console.error('Error clearing tokens:', error);
-                alert('Failed to clear tokens. Please try again.');
-            }
-        }
-
-        async function forceUnauthorized() {
-            try {
-                const response = await fetch(`${API_BASE_URL}/debug/force-unauthorized`, {
-                    method: 'POST',
-                    credentials: 'include'
-                });
-                if (response.ok) {
-                    console.log('Force unauthorized successful');
-                    isAuthenticated = false;
-                    showAuthSection();
-                    alert('Force unauthorized successful. You will need to re-authenticate.');
-                } else {
-                    console.error('Force unauthorized failed:', response.status, response.statusText);
-                    alert('Failed to force unauthorized. Please try again.');
-                }
-            } catch (error) {
-                console.error('Error during force unauthorized:', error);
-                alert('Failed to force unauthorized. Please try again.');
-            }
         }
 
         // Initialize app when page loads

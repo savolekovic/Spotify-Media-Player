@@ -83,7 +83,7 @@ app.post('/api/spotify/refresh-token', async (req, res) => {
     }
 });
 
-// Current playback endpoint (what frontend expects)
+// Current playback endpoint (READ-ONLY)
 app.get('/api/spotify/current-playback', async (req, res) => {
     try {
         if (!userTokens.access_token) {
@@ -104,106 +104,24 @@ app.get('/api/spotify/current-playback', async (req, res) => {
     }
 });
 
-// Spotify API proxy endpoints
-app.get('/api/spotify/me', async (req, res) => {
+// Get queue endpoint (READ-ONLY)
+app.get('/api/spotify/queue', async (req, res) => {
     try {
-        const token = req.headers.authorization?.replace('Bearer ', '') || userTokens.access_token;
-        if (!token) {
-            return res.status(401).json({ error: 'No token provided' });
+        if (!userTokens.access_token) {
+            return res.status(401).json({ error: 'No token available' });
         }
         
-        const response = await axios.get('https://api.spotify.com/v1/me', {
-            headers: { 'Authorization': `Bearer ${token}` }
+        const response = await axios.get('https://api.spotify.com/v1/me/player/queue', {
+            headers: { 'Authorization': `Bearer ${userTokens.access_token}` }
         });
         res.json(response.data);
     } catch (error) {
-        console.error('Spotify API error:', error.response?.data || error.message);
-        res.status(error.response?.status || 500).json(error.response?.data || { error: 'Spotify API error' });
-    }
-});
-
-app.get('/api/spotify/player', async (req, res) => {
-    try {
-        const token = req.headers.authorization?.replace('Bearer ', '') || userTokens.access_token;
-        if (!token) {
-            return res.status(401).json({ error: 'No token provided' });
+        console.error('Queue error:', error.response?.data || error.message);
+        if (error.response?.status === 401) {
+            res.status(401).json({ error: 'Token expired' });
+        } else {
+            res.status(error.response?.status || 500).json(error.response?.data || { error: 'Queue error' });
         }
-        
-        const response = await axios.get('https://api.spotify.com/v1/me/player', {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        res.json(response.data);
-    } catch (error) {
-        console.error('Spotify player error:', error.response?.data || error.message);
-        res.status(error.response?.status || 500).json(error.response?.data || { error: 'Spotify player error' });
-    }
-});
-
-app.post('/api/spotify/play', async (req, res) => {
-    try {
-        const token = req.headers.authorization?.replace('Bearer ', '') || userTokens.access_token;
-        if (!token) {
-            return res.status(401).json({ error: 'No token provided' });
-        }
-        
-        await axios.put('https://api.spotify.com/v1/me/player/play', req.body, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        res.json({ success: true });
-    } catch (error) {
-        console.error('Spotify play error:', error.response?.data || error.message);
-        res.status(error.response?.status || 500).json(error.response?.data || { error: 'Spotify play error' });
-    }
-});
-
-app.post('/api/spotify/pause', async (req, res) => {
-    try {
-        const token = req.headers.authorization?.replace('Bearer ', '') || userTokens.access_token;
-        if (!token) {
-            return res.status(401).json({ error: 'No token provided' });
-        }
-        
-        await axios.put('https://api.spotify.com/v1/me/player/pause', {}, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        res.json({ success: true });
-    } catch (error) {
-        console.error('Spotify pause error:', error.response?.data || error.message);
-        res.status(error.response?.status || 500).json(error.response?.data || { error: 'Spotify pause error' });
-    }
-});
-
-app.post('/api/spotify/next', async (req, res) => {
-    try {
-        const token = req.headers.authorization?.replace('Bearer ', '') || userTokens.access_token;
-        if (!token) {
-            return res.status(401).json({ error: 'No token provided' });
-        }
-        
-        await axios.post('https://api.spotify.com/v1/me/player/next', {}, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        res.json({ success: true });
-    } catch (error) {
-        console.error('Spotify next error:', error.response?.data || error.message);
-        res.status(error.response?.status || 500).json(error.response?.data || { error: 'Spotify next error' });
-    }
-});
-
-app.post('/api/spotify/previous', async (req, res) => {
-    try {
-        const token = req.headers.authorization?.replace('Bearer ', '') || userTokens.access_token;
-        if (!token) {
-            return res.status(401).json({ error: 'No token provided' });
-        }
-        
-        await axios.post('https://api.spotify.com/v1/me/player/previous', {}, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        res.json({ success: true });
-    } catch (error) {
-        console.error('Spotify previous error:', error.response?.data || error.message);
-        res.status(error.response?.status || 500).json(error.response?.data || { error: 'Spotify previous error' });
     }
 });
 
@@ -226,7 +144,7 @@ app.get('/api/spotify/search', async (req, res) => {
     }
 });
 
-// Add to queue endpoint
+// Add to queue endpoint (ALLOWED - this is safe for office use)
 app.post('/api/spotify/add-to-queue', async (req, res) => {
     try {
         const token = req.headers.authorization?.replace('Bearer ', '') || userTokens.access_token;
