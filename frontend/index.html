@@ -381,7 +381,7 @@
             }
 
             const resultsHtml = tracks.map((track) => `
-                <div class=\"track-item group flex items-center gap-3 p-3 sm:p-4\">
+                <div class=\"track-item group flex items-center gap-3 p-3 sm:p-4\" data-track-uri=\"${escapeHtml(track.uri)}\">
                     <img class=\"h-10 w-10 sm:h-12 sm:w-12 rounded-md object-cover\" src=\"${track.album?.images?.[2]?.url || track.album?.images?.[0]?.url || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjMzMzMzMzIi8+Cjx0ZXh0IHg9IjIwIiB5PSIyNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE2IiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+4p2qPC90ZXh0Pgo8L3N2Zz4K'}\" alt=\"Album\">
                     <div class=\"track-item-info min-w-0\">
                         <h4 class=\"truncate text-sm font-medium\">${escapeHtml(track.name)}</h4>
