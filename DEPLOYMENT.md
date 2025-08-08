@@ -7,10 +7,10 @@ This project is configured to deploy on Render with the following services:
 ### Services Configuration
 
 1. **Backend Service** (`spotify-media-player-backend`)
-   - Type: Web Service (Java)
-   - Environment: Java 17
+   - Type: Web Service (Node.js)
+   - Environment: Node.js
    - Port: 8080
-   - Database: H2 in-memory (no external database needed)
+   - API: Express.js server with Spotify API integration
 
 2. **Frontend Service** (`spotify-media-player-frontend`)
    - Type: Web Service (Node.js)
@@ -57,12 +57,19 @@ If the repository doesn't show up in Render:
 
 To run locally:
 ```bash
-# Backend
-cd backend
-./mvnw spring-boot:run
+# Backend (Node.js version)
+npm install
+npm start
 
 # Frontend
 cd frontend
 npm install
 npm start
 ```
+
+### Architecture Notes
+
+- **Backend**: Node.js Express server that proxies Spotify API calls
+- **Frontend**: Static HTML/JS served by Node.js
+- **Database**: No database required (uses in-memory storage)
+- **Authentication**: Spotify OAuth 2.0 flow
