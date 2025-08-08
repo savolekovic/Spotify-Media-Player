@@ -1,9 +1,8 @@
 services:
-  # Combined Backend + Frontend Service
   - type: web
     name: spotify-media-player
     env: node
-    buildCommand: npm install && cd frontend && npm install
+    buildCommand: npm install
     startCommand: npm start
     envVars:
       - key: SPOTIFY_CLIENT_ID
@@ -12,5 +11,3 @@ services:
         sync: false
       - key: SPOTIFY_REDIRECT_URI
         value: https://spotify-media-player.onrender.com
-      - key: PORT
-        value: 3000
