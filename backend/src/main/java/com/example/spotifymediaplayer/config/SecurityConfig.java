@@ -11,6 +11,14 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
 
+/**
+ * Security configuration for the Spring Boot backend.
+ *
+ * This application exposes a lightweight API intended to be consumed by the
+ * local frontend. We disable CSRF (no browser sessions with cookies are used)
+ * and allow all requests while relying on Spotify OAuth for user auth.
+ * CORS is explicitly configured to allow localhost origins during development.
+ */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -27,6 +35,9 @@ public class SecurityConfig {
         return http.build();
     }
     
+    /**
+     * Permissive CORS for local development. Update origins for production.
+     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();

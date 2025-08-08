@@ -3,6 +3,12 @@ package com.example.spotifymediaplayer.entity;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
+/**
+ * Entity persisting Spotify tokens per anonymous HTTP session.
+ *
+ * Tokens are keyed by sessionId. H2 is used by default for development storage.
+ * The model stores access and refresh tokens along with expiry and timestamps.
+ */
 @Entity
 @Table(name = "user_tokens")
 public class UserToken {
@@ -11,15 +17,19 @@ public class UserToken {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
+    /** Unique id correlating to HttpSession.getId() */
     @Column(unique = true)
     private String sessionId;
     
+    /** Short-lived OAuth access token used for Spotify API calls */
     @Column(length = 1000)
     private String accessToken;
     
+    /** Long-lived refresh token used to obtain new access tokens */
     @Column(length = 1000)
     private String refreshToken;
     
+    /** Expiration instant of the current access token */
     private LocalDateTime expiresAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
