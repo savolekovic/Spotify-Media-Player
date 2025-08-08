@@ -3,6 +3,7 @@ const cors = require('cors');
 const axios = require('axios');
 const path = require('path');
 const fs = require('fs');
+const { officeOnly, DEFAULT_ALLOWED_IP_RANGES } = require('./middleware/officeOnly');
 
 /**
  * Lightweight Node.js server used in the Render deployment and for local dev.
@@ -19,68 +20,22 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Office WiFi IP ranges - configured for your office network
-const ALLOWED_IP_RANGES = [
-    '192.168.1.0/24',  // Your office WiFi range (192.168.1.1 - 192.168.1.254)
-    // Add additional ranges if needed
-];
+// Office-only access middleware is now extracted to middleware/officeOnly.js
 
-/**
- * Middleware that restricts access to requests coming from allowed CIDR ranges.
- * Uses X-Forwarded-For / X-Real-IP when present (e.g., behind a proxy).
- */
-function checkIPAccess(req, res, next) {
-    const clientIP = req.ip || req.connection.remoteAddress || req.socket.remoteAddress;
-    const forwardedIP = req.headers['x-forwarded-for'] || req.headers['x-real-ip'];
-    const actualIP = forwardedIP ? forwardedIP.split(',')[0].trim() : clientIP;
-    
-    console.log('Client IP:', actualIP);
-    
-    // Check if IP is in allowed ranges
-    const isAllowed = ALLOWED_IP_RANGES.some(range => {
-        return isIPInRange(actualIP, range);
-    });
-    
-    if (!isAllowed) {
-        console.log('Access denied for IP:', actualIP);
-        return res.status(403).json({ 
-            error: 'Access Denied', 
-            message: 'This application is only available on the office network.',
-            ip: actualIP 
-        });
-    }
-    
-    next();
-}
-
-// Helper function to check if IP is in range
-function isIPInRange(ip, range) {
-    if (range === '0.0.0.0/0') return true; // Allow all (for testing)
-    
-    const [rangeIP, prefix] = range.split('/');
-    const mask = ~((1 << (32 - parseInt(prefix))) - 1);
-    
-    const ipNum = ipToNumber(ip);
-    const rangeNum = ipToNumber(rangeIP);
-    
-    return (ipNum & mask) === (rangeNum & mask);
-}
-
-function ipToNumber(ip) {
-    return ip.split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet), 0) >>> 0;
-}
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 
-// Apply IP filtering to all routes except health check
-app.use((req, res, next) => {
-    if (req.path === '/api/health') {
-        return next(); // Skip IP check for health endpoint
-    }
-    checkIPAccess(req, res, next);
-});
+// Office-only access is currently DISABLED.
+// To re-enable, uncomment the block below.
+// const officeOnlyMiddleware = officeOnly({ allowedIpRanges: DEFAULT_ALLOWED_IP_RANGES });
+// app.use((req, res, next) => {
+//     if (req.path === '/api/health') {
+//         return next(); // Skip IP check for health endpoint
+//     }
+//     return officeOnlyMiddleware(req, res, next);
+// });
 
 // Serve static files from frontend directory
 app.use(express.static(path.join(__dirname, 'frontend')));
@@ -329,5 +284,5 @@ app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     console.log(`Spotify Client ID: ${SPOTIFY_CLIENT_ID ? 'Set' : 'Not set'}`);
     console.log(`Spotify Client Secret: ${SPOTIFY_CLIENT_SECRET ? 'Set' : 'Not set'}`);
-    console.log('IP filtering enabled for office network access');
+    console.log('IP filtering is currently DISABLED (office-only check is OFF)');
 });
