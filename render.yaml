@@ -19,7 +19,7 @@ services:
     name: spotify-media-player-frontend
     env: node
     buildCommand: cd frontend && npm install
-    startCommand: cd frontend && node server.js
+    startCommand: cd frontend && npm start
     envVars:
       - key: NODE_ENV
         value: production
