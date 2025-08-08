@@ -277,6 +277,8 @@
         let isPlaying = false;
         let currentTrack = null;
         let playbackInterval = null;
+        let lastQueueData = null;
+        let queueUpdateCount = 0;
 
         // Initialize the app
         function init() {
@@ -337,7 +339,13 @@
                 
                 if (response.ok) {
                     const data = await response.json();
-                    displayQueue(data.queue || []);
+                    
+                    // Only update queue if it has actually changed
+                    if (hasQueueChanged(data)) {
+                        console.log('Queue updated:', data.queue_length, 'items');
+                        displayQueue(data.queue || []);
+                        lastQueueData = data;
+                    }
                 } else if (response.status === 401) {
                     // Token expired or invalid
                     isAuthenticated = false;
@@ -346,6 +354,33 @@
             } catch (error) {
                 console.error('Error getting queue:', error);
             }
+        }
+
+        // Check if queue has actually changed
+        function hasQueueChanged(newData) {
+            if (!lastQueueData) return true;
+            
+            // Compare queue lengths
+            if (newData.queue_length !== lastQueueData.queue_length) {
+                return true;
+            }
+            
+            // Compare first few items to detect changes
+            const newQueue = newData.queue || [];
+            const oldQueue = lastQueueData.queue || [];
+            
+            if (newQueue.length !== oldQueue.length) {
+                return true;
+            }
+            
+            // Check if first item changed (most common case)
+            if (newQueue.length > 0 && oldQueue.length > 0) {
+                if (newQueue[0].uri !== oldQueue[0].uri) {
+                    return true;
+                }
+            }
+            
+            return false;
         }
 
         async function checkAuthenticationStatus() {
@@ -454,7 +489,7 @@
             playbackInterval = setInterval(() => {
                 getCurrentPlayback();
                 getQueue();
-            }, 2000);
+            }, 5000); // Reduced frequency to 5 seconds
         }
 
         function showAuthSection() {
@@ -553,7 +588,11 @@
                 return;
             }
 
-            const queueHtml = queue.map((track, index) => `
+            // Limit display to first 10 items to avoid overwhelming the UI
+            const displayQueue = queue.slice(0, 10);
+            const remainingCount = queue.length - 10;
+
+            const queueHtml = displayQueue.map((track, index) => `
                 <div class="track-item">
                     <img src="${track.album?.images?.[2]?.url || track.album?.images?.[0]?.url || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjMzMzMzMzIi8+Cjx0ZXh0IHg9IjIwIiB5PSIyNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE2IiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+4p2qPC90ZXh0Pgo8L3N2Zz4K'}" alt="Album">
                     <div class="track-item-info">
@@ -564,7 +603,15 @@
                 </div>
             `).join('');
 
-            document.getElementById('queueList').innerHTML = queueHtml;
+            let finalHtml = queueHtml;
+            
+            if (remainingCount > 0) {
+                finalHtml += `<div class="status" style="margin-top: 10px; color: #1DB954;">
+                    +${remainingCount} more tracks in queue
+                </div>`;
+            }
+
+            document.getElementById('queueList').innerHTML = finalHtml;
         }
 
         async function addToQueue(trackUri, buttonElement) {

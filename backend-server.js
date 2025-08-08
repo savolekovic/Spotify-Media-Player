@@ -7,9 +7,65 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Office WiFi IP ranges - configured for your office network
+const ALLOWED_IP_RANGES = [
+    '192.168.1.0/24',  // Your office WiFi range (192.168.1.1 - 192.168.1.254)
+    // Add additional ranges if needed
+];
+
+// IP filtering middleware
+function checkIPAccess(req, res, next) {
+    const clientIP = req.ip || req.connection.remoteAddress || req.socket.remoteAddress;
+    const forwardedIP = req.headers['x-forwarded-for'] || req.headers['x-real-ip'];
+    const actualIP = forwardedIP ? forwardedIP.split(',')[0].trim() : clientIP;
+    
+    console.log('Client IP:', actualIP);
+    
+    // Check if IP is in allowed ranges
+    const isAllowed = ALLOWED_IP_RANGES.some(range => {
+        return isIPInRange(actualIP, range);
+    });
+    
+    if (!isAllowed) {
+        console.log('Access denied for IP:', actualIP);
+        return res.status(403).json({ 
+            error: 'Access Denied', 
+            message: 'This application is only available on the office network.',
+            ip: actualIP 
+        });
+    }
+    
+    next();
+}
+
+// Helper function to check if IP is in range
+function isIPInRange(ip, range) {
+    if (range === '0.0.0.0/0') return true; // Allow all (for testing)
+    
+    const [rangeIP, prefix] = range.split('/');
+    const mask = ~((1 << (32 - parseInt(prefix))) - 1);
+    
+    const ipNum = ipToNumber(ip);
+    const rangeNum = ipToNumber(rangeIP);
+    
+    return (ipNum & mask) === (rangeNum & mask);
+}
+
+function ipToNumber(ip) {
+    return ip.split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet), 0) >>> 0;
+}
+
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Apply IP filtering to all routes except health check
+app.use((req, res, next) => {
+    if (req.path === '/api/health') {
+        return next(); // Skip IP check for health endpoint
+    }
+    checkIPAccess(req, res, next);
+});
 
 // Serve static files from frontend directory
 app.use(express.static(path.join(__dirname, 'frontend')));
@@ -114,11 +170,29 @@ app.get('/api/spotify/queue', async (req, res) => {
         const response = await axios.get('https://api.spotify.com/v1/me/player/queue', {
             headers: { 'Authorization': `Bearer ${userTokens.access_token}` }
         });
-        res.json(response.data);
+        
+        // Add timestamp to help with debugging
+        const queueData = {
+            ...response.data,
+            timestamp: new Date().toISOString(),
+            queue_length: response.data.queue ? response.data.queue.length : 0
+        };
+        
+        console.log(`Queue fetched: ${queueData.queue_length} items`);
+        res.json(queueData);
     } catch (error) {
         console.error('Queue error:', error.response?.data || error.message);
         if (error.response?.status === 401) {
             res.status(401).json({ error: 'Token expired' });
+        } else if (error.response?.status === 404) {
+            // No active device or player not available
+            res.json({ 
+                queue: [], 
+                currently_playing: null,
+                timestamp: new Date().toISOString(),
+                queue_length: 0,
+                message: 'No active Spotify player found'
+            });
         } else {
             res.status(error.response?.status || 500).json(error.response?.data || { error: 'Queue error' });
         }
@@ -194,4 +268,5 @@ app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     console.log(`Spotify Client ID: ${SPOTIFY_CLIENT_ID ? 'Set' : 'Not set'}`);
     console.log(`Spotify Client Secret: ${SPOTIFY_CLIENT_SECRET ? 'Set' : 'Not set'}`);
+    console.log('IP filtering enabled for office network access');
 });
