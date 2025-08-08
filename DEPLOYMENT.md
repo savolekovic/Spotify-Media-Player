@@ -7,9 +7,9 @@ This project is configured to deploy on Render with the following services:
 ### Services Configuration
 
 1. **Backend Service** (`spotify-media-player-backend`)
-   - Type: Web Service (Docker)
-   - Environment: Docker
-   - Port: 8080 (auto-detected by Render)
+   - Type: Web Service (Java)
+   - Environment: Java 17
+   - Port: 8080
    - Database: H2 in-memory (no external database needed)
 
 2. **Frontend Service** (`spotify-media-player-frontend`)
