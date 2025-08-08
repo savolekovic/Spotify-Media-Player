@@ -4,264 +4,71 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Office Spotify Queue</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #1DB954, #191414);
-            min-height: 100vh;
-            color: white;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: rgba(0, 0, 0, 0.8);
-            border-radius: 20px;
-            padding: 30px;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-        }
-
-        .auth-section {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .connect-btn {
-            background: #1DB954;
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            border-radius: 50px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-block;
-        }
-
-        .connect-btn:hover {
-            background: #1ed760;
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(29, 185, 84, 0.3);
-        }
-
-        .player-section {
-            display: none;
-        }
-
-        .now-playing {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 30px;
-            text-align: center;
-        }
-
-        .track-info {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        .album-art {
-            width: 80px;
-            height: 80px;
-            border-radius: 10px;
-            background: #333;
-            flex-shrink: 0;
-        }
-
-        .track-details h3 {
-            font-size: 20px;
-            margin-bottom: 5px;
-        }
-
-        .track-details p {
-            color: #ccc;
-            font-size: 14px;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 4px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 2px;
-            margin: 20px 0 10px 0;
-            overflow: hidden;
-        }
-
-        .progress {
-            height: 100%;
-            background: #1DB954;
-            width: 0%;
-            transition: width 0.3s ease;
-        }
-
-        .time-display {
-            display: flex;
-            justify-content: space-between;
-            font-size: 12px;
-            color: #ccc;
-        }
-
-        .queue-section {
-            margin-top: 30px;
-        }
-
-        .search-section {
-            margin-bottom: 20px;
-        }
-
-        .search-input {
-            width: 100%;
-            padding: 15px;
-            border: none;
-            border-radius: 10px;
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            font-size: 16px;
-        }
-
-        .search-input::placeholder {
-            color: #ccc;
-        }
-
-        .search-results, .queue-list {
-            max-height: 300px;
-            overflow-y: auto;
-        }
-
-        .track-item {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            padding: 10px;
-            border-radius: 10px;
-            transition: background 0.3s ease;
-            cursor: pointer;
-        }
-
-        .track-item:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .track-item img {
-            width: 40px;
-            height: 40px;
-            border-radius: 5px;
-        }
-
-        .track-item-info {
-            flex: 1;
-        }
-
-        .track-item-info h4 {
-            font-size: 14px;
-            margin-bottom: 2px;
-        }
-
-        .track-item-info p {
-            font-size: 12px;
-            color: #ccc;
-        }
-
-        .add-btn {
-            background: #1DB954;
-            border: none;
-            border-radius: 5px;
-            color: white;
-            padding: 8px 12px;
-            font-size: 12px;
-            cursor: pointer;
-            transition: background 0.3s ease;
-        }
-
-        .add-btn:hover {
-            background: #1ed760;
-        }
-
-        .status {
-            text-align: center;
-            color: #ccc;
-            margin: 20px 0;
-        }
-
-        h2 {
-            margin-bottom: 20px;
-            color: #1DB954;
-        }
-
-        .info-box {
-            background: rgba(29, 185, 84, 0.1);
-            border: 1px solid #1DB954;
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .info-box p {
-            color: #ccc;
-            font-size: 14px;
-            line-height: 1.5;
-        }
+        @keyframes vz-bounce { 0%, 100% { transform: scaleY(0.35); } 50% { transform: scaleY(1); } }
+        .now-playing.is-playing .bar { animation: vz-bounce 1.2s ease-in-out infinite; transform-origin: center bottom; }
+        .now-playing.is-playing .bar:nth-child(2) { animation-delay: .15s; }
+        .now-playing.is-playing .bar:nth-child(3) { animation-delay: .3s; }
+        .now-playing.is-playing .bar:nth-child(4) { animation-delay: .45s; }
     </style>
 </head>
-<body>
-    <div class="container">
-        <div class="auth-section">
-            <h1>🎵 Office Spotify Queue</h1>
-            <p style="margin: 20px 0; color: #ccc;">Connect your Spotify account to manage the office music queue</p>
-            <button class="connect-btn" onclick="connectSpotify()">Connect to Spotify</button>
-        </div>
+<body class="min-h-screen bg-gradient-to-br from-emerald-600 via-emerald-700 to-zinc-900 text-white antialiased">
+    <div class="mx-auto w-full max-w-5xl px-4 py-8 md:py-12">
+        <div class="rounded-2xl bg-zinc-900/70 ring-1 ring-white/10 shadow-2xl backdrop-blur">
+            <div class="p-6 sm:p-8">
+                <div class="auth-section text-center">
+                    <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight">Office Spotify Queue</h1>
+                    <p class="mt-3 text-sm text-zinc-300">Connect your Spotify account to manage the office music queue</p>
+                    <button class="mt-6 inline-flex items-center rounded-full bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow hover:bg-emerald-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900 transition" onclick="connectSpotify()">Connect to Spotify</button>
+                </div>
 
-        <div class="player-section" id="playerSection">
-            <div class="info-box">
-                <p><strong>Office Mode:</strong> Anyone can add songs to the queue and view what's playing. 
-                Use your phone or Spotify app to control playback (play/pause/next/previous).</p>
-            </div>
-
-            <div class="now-playing">
-                <div class="track-info">
-                    <img class="album-art" id="albumArt" src="" alt="Album Art">
-                    <div class="track-details">
-                        <h3 id="trackName">No track playing</h3>
-                        <p id="artistName">Connect your Spotify account</p>
+                <div class="player-section hidden" id="playerSection">
+                    <div class="mb-6 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-center">
+                        <p class="text-sm text-zinc-200"><strong class="text-emerald-400">Office Mode:</strong> Anyone can add songs to the queue and view what's playing. Use your phone or Spotify app to control playback.</p>
                     </div>
-                </div>
-                
-                <div class="progress-bar">
-                    <div class="progress" id="progress"></div>
-                </div>
-                <div class="time-display">
-                    <span id="currentTime">0:00</span>
-                    <span id="totalTime">0:00</span>
-                </div>
-            </div>
 
-            <div class="queue-section">
-                <h2>Add to Queue</h2>
-                <div class="search-section">
-                    <input type="text" class="search-input" placeholder="Search for songs, artists, or albums..." 
-                           oninput="searchTracks(this.value)" id="searchInput">
-                </div>
-                <div class="search-results" id="searchResults">
-                    <div class="status">Enter a search term to find tracks</div>
-                </div>
+                    <div class="now-playing rounded-2xl bg-white/5 ring-1 ring-white/10 shadow-xl p-5 md:p-6">
+                        <div class="track-info flex items-center gap-4 md:gap-6">
+                            <img class="album-art h-20 w-20 md:h-24 md:w-24 rounded-lg object-cover shadow-lg" id="albumArt" src="" alt="Album art for current track">
+                            <div class="track-details min-w-0">
+                                <h3 id="trackName" class="truncate text-lg md:text-xl font-semibold">No track playing</h3>
+                                <p id="artistName" class="truncate text-sm text-zinc-300">Connect your Spotify account</p>
+                            </div>
+                            <div class="ml-auto hidden sm:flex items-end gap-1" aria-hidden="true">
+                                <span class="bar h-2 w-1 rounded-full bg-emerald-400"></span>
+                                <span class="bar h-3 w-1 rounded-full bg-emerald-400"></span>
+                                <span class="bar h-4 w-1 rounded-full bg-emerald-400"></span>
+                                <span class="bar h-3 w-1 rounded-full bg-emerald-400"></span>
+                            </div>
+                        </div>
 
-                <h2 style="margin-top: 30px;">Current Queue</h2>
-                <div class="queue-list" id="queueList">
-                    <div class="status">Loading queue...</div>
+                        <div class="mt-5">
+                            <div class="progress-bar h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+                                <div class="progress h-full bg-emerald-500 transition-all" id="progress" style="width: 0%"></div>
+                            </div>
+                            <div class="time-display mt-2 flex justify-between text-xs text-zinc-400">
+                                <span id="currentTime">0:00</span>
+                                <span id="totalTime">0:00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="queue-section mt-8">
+                        <h2 class="text-lg font-semibold tracking-tight text-emerald-400">Add to Queue</h2>
+                        <div class="search-section mt-3">
+                            <label for="searchInput" class="sr-only">Search for songs, artists, or albums</label>
+                            <input type="text" class="search-input w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-zinc-400 outline-none focus:ring-2 focus:ring-emerald-500/60" placeholder="Search for songs, artists, or albums..." oninput="searchTracks(this.value)" id="searchInput" autocomplete="off" />
+                        </div>
+                        <div id="searchResults" class="search-results mt-3 max-h-80 overflow-y-auto divide-y divide-white/5">
+                            <div class="status py-6 text-center text-sm text-zinc-400">Enter a search term to find tracks</div>
+                        </div>
+
+                        <h2 class="mt-8 text-lg font-semibold tracking-tight text-emerald-400">Current Queue</h2>
+                        <div id="queueList" class="queue-list mt-3 max-h-96 overflow-y-auto divide-y divide-white/5">
+                            <div class="status py-6 text-center text-sm text-zinc-400">Loading queue...</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -504,6 +311,11 @@
         }
 
         function updatePlayerDisplay(track, playing, progressMs) {
+            const nowPlayingEl = document.querySelector('.now-playing');
+            if (nowPlayingEl) {
+                nowPlayingEl.classList.toggle('is-playing', !!playing);
+            }
+
             if (!track) {
                 document.getElementById('trackName').textContent = 'No track playing';
                 document.getElementById('artistName').textContent = 'Open Spotify and start playing music';
@@ -535,7 +347,7 @@
         let searchTimeout;
         async function searchTracks(query) {
             if (!query.trim()) {
-                document.getElementById('searchResults').innerHTML = '<div class="status">Enter a search term to find tracks</div>';
+                document.getElementById('searchResults').innerHTML = '<div class="status py-6 text-center text-sm text-zinc-400">Enter a search term to find tracks</div>';
                 return;
             }
 
@@ -553,29 +365,29 @@
                         const data = await response.json();
                         displaySearchResults(data.tracks?.items || []);
                     } else {
-                        document.getElementById('searchResults').innerHTML = '<div class="status">Error searching tracks</div>';
+                        document.getElementById('searchResults').innerHTML = '<div class="status py-6 text-center text-sm text-zinc-400">Error searching tracks</div>';
                     }
                 } catch (error) {
                     console.error('Error searching tracks:', error);
-                    document.getElementById('searchResults').innerHTML = '<div class="status">Error searching tracks</div>';
+                    document.getElementById('searchResults').innerHTML = '<div class="status py-6 text-center text-sm text-zinc-400">Error searching tracks</div>';
                 }
             }, 300);
         }
 
         function displaySearchResults(tracks) {
             if (tracks.length === 0) {
-                document.getElementById('searchResults').innerHTML = '<div class="status">No tracks found</div>';
+                document.getElementById('searchResults').innerHTML = '<div class="status py-6 text-center text-sm text-zinc-400">No tracks found</div>';
                 return;
             }
 
-            const resultsHtml = tracks.map((track, index) => `
-                <div class="track-item" data-track-uri="${escapeHtml(track.uri)}">
-                    <img src="${track.album?.images?.[2]?.url || track.album?.images?.[0]?.url || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjMzMzMzMzIi8+Cjx0ZXh0IHg9IjIwIiB5PSIyNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE2IiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+4p2qPC90ZXh0Pgo8L3N2Zz4K'}" alt="Album">
-                    <div class="track-item-info">
-                        <h4>${escapeHtml(track.name)}</h4>
-                        <p>${track.artists?.map(a => escapeHtml(a.name)).join(', ') || 'Unknown Artist'}</p>
+            const resultsHtml = tracks.map((track) => `
+                <div class=\"track-item group flex items-center gap-3 p-3 sm:p-4\">
+                    <img class=\"h-10 w-10 sm:h-12 sm:w-12 rounded-md object-cover\" src=\"${track.album?.images?.[2]?.url || track.album?.images?.[0]?.url || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjMzMzMzMzIi8+Cjx0ZXh0IHg9IjIwIiB5PSIyNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE2IiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+4p2qPC90ZXh0Pgo8L3N2Zz4K'}\" alt=\"Album\">
+                    <div class=\"track-item-info min-w-0\">
+                        <h4 class=\"truncate text-sm font-medium\">${escapeHtml(track.name)}</h4>
+                        <p class=\"truncate text-xs text-zinc-400\">${track.artists?.map(a => escapeHtml(a.name)).join(', ') || 'Unknown Artist'}</p>
                     </div>
-                    <button class="add-btn" onclick="addToQueue('${escapeHtml(track.uri)}', this)">Add to Queue</button>
+                    <button class=\"add-btn ml-auto inline-flex items-center rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300\" onclick=\"addToQueue('${escapeHtml(track.uri)}', this)\">Add</button>
                 </div>
             `).join('');
 
@@ -584,31 +396,28 @@
 
         function displayQueue(queue) {
             if (queue.length === 0) {
-                document.getElementById('queueList').innerHTML = '<div class="status">Queue is empty</div>';
+                document.getElementById('queueList').innerHTML = '<div class="status py-6 text-center text-sm text-zinc-400">Queue is empty</div>';
                 return;
             }
 
-            // Limit display to first 10 items to avoid overwhelming the UI
-            const displayQueue = queue.slice(0, 10);
+            const displayQueueItems = queue.slice(0, 10);
             const remainingCount = queue.length - 10;
 
-            const queueHtml = displayQueue.map((track, index) => `
-                <div class="track-item">
-                    <img src="${track.album?.images?.[2]?.url || track.album?.images?.[0]?.url || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjMzMzMzMzIi8+Cjx0ZXh0IHg9IjIwIiB5PSIyNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE2IiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+4p2qPC90ZXh0Pgo8L3N2Zz4K'}" alt="Album">
-                    <div class="track-item-info">
-                        <h4>${escapeHtml(track.name)}</h4>
-                        <p>${track.artists?.map(a => escapeHtml(a.name)).join(', ') || 'Unknown Artist'}</p>
+            const queueHtml = displayQueueItems.map((track, index) => `
+                <div class=\"track-item group flex items-center gap-3 p-3 sm:p-4\">
+                    <img class=\"h-10 w-10 sm:h-12 sm:w-12 rounded-md object-cover\" src=\"${track.album?.images?.[2]?.url || track.album?.images?.[0]?.url || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjMzMzMzMzIi8+Cjx0ZXh0IHg9IjIwIiB5PSIyNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE2IiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+4p2qPC90ZXh0Pgo8L3N2Zz4K'}\" alt=\"Album\">
+                    <div class=\"track-item-info min-w-0\">
+                        <h4 class=\"truncate text-sm font-medium\">${escapeHtml(track.name)}</h4>
+                        <p class=\"truncate text-xs text-zinc-400\">${track.artists?.map(a => escapeHtml(a.name)).join(', ') || 'Unknown Artist'}</p>
                     </div>
-                    <span style="color: #1DB954; font-size: 12px;">#${index + 1}</span>
+                    <span class=\"ml-auto text-xs text-emerald-400\">#${index + 1}</span>
                 </div>
             `).join('');
 
             let finalHtml = queueHtml;
             
             if (remainingCount > 0) {
-                finalHtml += `<div class="status" style="margin-top: 10px; color: #1DB954;">
-                    +${remainingCount} more tracks in queue
-                </div>`;
+                finalHtml += `<div class=\"status mt-2 text-center text-xs text-emerald-400\">+${remainingCount} more tracks in queue</div>`;
             }
 
             document.getElementById('queueList').innerHTML = finalHtml;
@@ -631,12 +440,14 @@
                     // Show success feedback
                     const originalText = buttonElement.textContent;
                     buttonElement.textContent = 'Added!';
-                    buttonElement.style.background = '#1ed760';
+                    buttonElement.classList.remove('bg-emerald-600');
+                    buttonElement.classList.add('bg-emerald-500');
                     buttonElement.disabled = true;
                     
                     setTimeout(() => {
                         buttonElement.textContent = originalText;
-                        buttonElement.style.background = '#1DB954';
+                        buttonElement.classList.remove('bg-emerald-500');
+                        buttonElement.classList.add('bg-emerald-600');
                         buttonElement.disabled = false;
                     }, 2000);
                     
