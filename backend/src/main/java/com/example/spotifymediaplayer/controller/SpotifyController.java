@@ -2,8 +2,6 @@ package com.example.spotifymediaplayer.controller;
 
 import com.example.spotifymediaplayer.service.SpotifyService;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
@@ -20,8 +18,6 @@ public class SpotifyController {
     
     @Autowired
     private SpotifyService spotifyService;
-    
-    private final ObjectMapper objectMapper = new ObjectMapper();
     
     @GetMapping("/auth-url")
     public ResponseEntity<Map<String, String>> getAuthUrl(HttpSession session) {

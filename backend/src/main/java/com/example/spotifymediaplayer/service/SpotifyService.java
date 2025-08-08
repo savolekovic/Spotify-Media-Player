@@ -70,16 +70,19 @@ public class SpotifyService {
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 SpotifyTokenResponse tokenResponse = response.getBody();
                 
-                // Save token to database
-                LocalDateTime expiresAt = LocalDateTime.now().plusSeconds(tokenResponse.getExpiresIn());
-                UserToken userToken = new UserToken(sessionId, tokenResponse.getAccessToken(), 
-                                                   tokenResponse.getRefreshToken(), expiresAt);
-                
-                // Remove existing token for this session
-                tokenRepository.deleteBySessionId(sessionId);
-                tokenRepository.save(userToken);
-                
-                return tokenResponse.getAccessToken();
+                // Add explicit null checks to prevent potential null pointer access
+                if (tokenResponse != null && tokenResponse.getAccessToken() != null && tokenResponse.getExpiresIn() != null) {
+                    // Save token to database
+                    LocalDateTime expiresAt = LocalDateTime.now().plusSeconds(tokenResponse.getExpiresIn());
+                    UserToken userToken = new UserToken(sessionId, tokenResponse.getAccessToken(), 
+                                                       tokenResponse.getRefreshToken(), expiresAt);
+                    
+                    // Remove existing token for this session
+                    tokenRepository.deleteBySessionId(sessionId);
+                    tokenRepository.save(userToken);
+                    
+                    return tokenResponse.getAccessToken();
+                }
             }
             
         } catch (Exception e) {
@@ -131,15 +134,18 @@ public class SpotifyService {
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 SpotifyTokenResponse tokenResponse = response.getBody();
                 
-                // Update token in database
-                userToken.setAccessToken(tokenResponse.getAccessToken());
-                userToken.setExpiresAt(LocalDateTime.now().plusSeconds(tokenResponse.getExpiresIn()));
-                if (tokenResponse.getRefreshToken() != null) {
-                    userToken.setRefreshToken(tokenResponse.getRefreshToken());
+                // Add explicit null checks to prevent potential null pointer access
+                if (tokenResponse != null && tokenResponse.getAccessToken() != null && tokenResponse.getExpiresIn() != null) {
+                    // Update token in database
+                    userToken.setAccessToken(tokenResponse.getAccessToken());
+                    userToken.setExpiresAt(LocalDateTime.now().plusSeconds(tokenResponse.getExpiresIn()));
+                    if (tokenResponse.getRefreshToken() != null) {
+                        userToken.setRefreshToken(tokenResponse.getRefreshToken());
+                    }
+                    tokenRepository.save(userToken);
+                    
+                    return tokenResponse.getAccessToken();
                 }
-                tokenRepository.save(userToken);
-                
-                return tokenResponse.getAccessToken();
             }
             
         } catch (Exception e) {
