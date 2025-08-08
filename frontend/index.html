@@ -293,10 +293,10 @@
     </div>
 
     <script>
-        // Backend API configuration - use environment variable or fallback
+        // Backend API configuration - use same domain for production
         const API_BASE_URL = window.location.hostname === 'localhost' 
-            ? 'http://localhost:8080/api/spotify'
-            : 'https://spotify-media-player-backend.onrender.com/api/spotify';
+            ? 'http://localhost:3000/api/spotify'
+            : '/api/spotify';
         
         let isAuthenticated = false;
         let isPlaying = false;

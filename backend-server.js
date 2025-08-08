@@ -4,17 +4,19 @@ const axios = require('axios');
 const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'src/main/resources/static')));
+
+// Serve static files from frontend directory
+app.use(express.static(path.join(__dirname, 'frontend')));
 
 // Spotify configuration
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
 const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
-const SPOTIFY_REDIRECT_URI = process.env.SPOTIFY_REDIRECT_URI || 'https://spotify-media-player-frontend.onrender.com';
+const SPOTIFY_REDIRECT_URI = process.env.SPOTIFY_REDIRECT_URI || 'https://spotify-media-player.onrender.com';
 
 // Routes
 app.get('/api/auth/url', (req, res) => {
@@ -169,9 +171,9 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// Serve the main HTML file
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'src/main/resources/static/index.html'));
+// Serve the main HTML file for all non-API routes
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'frontend/index.html'));
 });
 
 app.listen(PORT, () => {
