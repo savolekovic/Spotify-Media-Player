@@ -18,6 +18,15 @@ import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.Optional;
 
+/**
+ * Service encapsulating Spotify OAuth and Web API calls.
+ *
+ * Responsibilities:
+ * - Build the authorization URL with required scopes
+ * - Exchange authorization code for tokens and persist them per session
+ * - Auto-refresh access tokens using the stored refresh token
+ * - Make authenticated Web API calls and return parsed JSON
+ */
 @Service
 public class SpotifyService {
     
@@ -30,6 +39,13 @@ public class SpotifyService {
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
     
+    /**
+     * Builds the Spotify authorization URL using the configured client and redirect.
+     * The provided sessionId is used as the OAuth "state" to correlate the callback.
+     *
+     * @param sessionId current HTTP session id
+     * @return fully-qualified Spotify authorization URL
+     */
     public String generateAuthUrl(String sessionId) {
         String scopes = "user-read-playback-state user-modify-playback-state user-read-currently-playing " +
                        "playlist-modify-public playlist-modify-private user-library-read user-library-modify";
@@ -42,9 +58,17 @@ public class SpotifyService {
                "&state=" + sessionId;
     }
     
+    /**
+     * Exchanges an authorization code for access and refresh tokens and persists them.
+     * Overwrites any existing tokens for the same session.
+     *
+     * @param code OAuth authorization code from Spotify callback
+     * @param sessionId current session id
+     * @return access token on success; null on failure
+     */
     public String exchangeCodeForToken(String code, String sessionId) {
         try {
-            // Prepare request headers
+            // Prepare request headers with Client Credentials in Basic auth
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
             
@@ -52,7 +76,7 @@ public class SpotifyService {
             String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes(StandardCharsets.UTF_8));
             headers.set("Authorization", "Basic " + encodedAuth);
             
-            // Prepare request body
+            // Prepare request body per Spotify token spec
             MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
             body.add("grant_type", "authorization_code");
             body.add("code", code);
@@ -72,12 +96,12 @@ public class SpotifyService {
                 
                 // Add explicit null checks to prevent potential null pointer access
                 if (tokenResponse != null && tokenResponse.getAccessToken() != null && tokenResponse.getExpiresIn() != null) {
-                    // Save token to database
+                    // Persist tokens with expiry
                     LocalDateTime expiresAt = LocalDateTime.now().plusSeconds(tokenResponse.getExpiresIn());
                     UserToken userToken = new UserToken(sessionId, tokenResponse.getAccessToken(), 
                                                        tokenResponse.getRefreshToken(), expiresAt);
                     
-                    // Remove existing token for this session
+                    // Remove existing token for this session then save
                     tokenRepository.deleteBySessionId(sessionId);
                     tokenRepository.save(userToken);
                     
@@ -86,23 +110,31 @@ public class SpotifyService {
             }
             
         } catch (Exception e) {
+            // Swallowing exceptions keeps controller responses consistent (null indicates failure)
             e.printStackTrace();
         }
         
         return null;
     }
     
+    /**
+     * Returns a valid access token for the given session.
+     * Refreshes the token if the stored one expires within the next 5 minutes.
+     *
+     * @param sessionId current session id
+     * @return valid access token or null if unavailable
+     */
     public String getValidAccessToken(String sessionId) {
         Optional<UserToken> tokenOpt = tokenRepository.findBySessionId(sessionId);
         
         if (tokenOpt.isPresent()) {
             UserToken userToken = tokenOpt.get();
             
-            // Check if token is still valid
+            // Check if token is still valid with a small buffer to avoid race conditions
             if (userToken.getExpiresAt().isAfter(LocalDateTime.now().plusMinutes(5))) {
                 return userToken.getAccessToken();
             } else {
-                // Token is expired, try to refresh
+                // Token is expired or near expiry, try to refresh
                 return refreshAccessToken(userToken);
             }
         }
@@ -110,6 +142,13 @@ public class SpotifyService {
         return null;
     }
     
+    /**
+     * Refreshes the access token using the stored refresh token.
+     * Updates the persisted token and returns the new access token.
+     *
+     * @param userToken persisted token record for current session
+     * @return new access token or null on failure
+     */
     private String refreshAccessToken(UserToken userToken) {
         try {
             HttpHeaders headers = new HttpHeaders();
@@ -155,6 +194,16 @@ public class SpotifyService {
         return null;
     }
     
+    /**
+     * Makes an authenticated request to the Spotify Web API.
+     * If there is no valid access token for the session, returns null.
+     *
+     * @param sessionId session id used to look up tokens
+     * @param endpoint  Spotify API endpoint path, starting with '/'
+     * @param method    HTTP method to use
+     * @param body      request body (may be null)
+     * @return parsed JSON body on success; null otherwise
+     */
     public JsonNode makeSpotifyApiCall(String sessionId, String endpoint, HttpMethod method, Object body) {
         String accessToken = getValidAccessToken(sessionId);
         if (accessToken == null) {
@@ -186,6 +235,11 @@ public class SpotifyService {
         return null;
     }
     
+    /**
+     * Deletes any stored tokens for the given session.
+     *
+     * @param sessionId current session id
+     */
     public void logout(String sessionId) {
         try {
             tokenRepository.deleteBySessionId(sessionId);
@@ -194,6 +248,10 @@ public class SpotifyService {
         }
     }
     
+    /**
+     * Debug helper that purges all stored tokens in the repository.
+     * Not intended for production use.
+     */
     public void clearAllTokens() {
         try {
             tokenRepository.deleteAll();

@@ -4,6 +4,18 @@ const axios = require('axios');
 const path = require('path');
 const fs = require('fs');
 
+/**
+ * Lightweight Node.js server used in the Render deployment and for local dev.
+ *
+ * Responsibilities:
+ * - Gate access by office IP ranges
+ * - Handle Spotify OAuth (auth URL, token exchange, refresh)
+ * - Proxy safe Spotify Web API endpoints used by the frontend
+ * - Serve static frontend assets for convenience
+ *
+ * NOTE: This server stores tokens in-memory for simplicity. For multi-user
+ * setups, prefer the Spring Boot backend with persistent storage.
+ */
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -13,7 +25,10 @@ const ALLOWED_IP_RANGES = [
     // Add additional ranges if needed
 ];
 
-// IP filtering middleware
+/**
+ * Middleware that restricts access to requests coming from allowed CIDR ranges.
+ * Uses X-Forwarded-For / X-Real-IP when present (e.g., behind a proxy).
+ */
 function checkIPAccess(req, res, next) {
     const clientIP = req.ip || req.connection.remoteAddress || req.socket.remoteAddress;
     const forwardedIP = req.headers['x-forwarded-for'] || req.headers['x-real-ip'];
@@ -70,7 +85,7 @@ app.use((req, res, next) => {
 // Serve static files from frontend directory
 app.use(express.static(path.join(__dirname, 'frontend')));
 
-// Spotify configuration
+// Spotify configuration (read from environment in deployment)
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
 const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
 const SPOTIFY_REDIRECT_URI = process.env.SPOTIFY_REDIRECT_URI || 'https://spotify-media-player.onrender.com';
@@ -79,12 +94,22 @@ const SPOTIFY_REDIRECT_URI = process.env.SPOTIFY_REDIRECT_URI || 'https://spotif
 let userTokens = {};
 
 // Routes
+/**
+ * GET /api/spotify/auth-url
+ * Returns: { authUrl: string }
+ * Build the authorization URL for the frontend to initiate Spotify OAuth.
+ */
 app.get('/api/spotify/auth-url', (req, res) => {
     const scopes = ['user-read-private', 'user-read-email', 'user-read-playback-state', 'user-modify-playback-state'];
     const authUrl = `https://accounts.spotify.com/authorize?client_id=${SPOTIFY_CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(SPOTIFY_REDIRECT_URI)}&scope=${encodeURIComponent(scopes.join(' '))}`;
     res.json({ authUrl });
 });
 
+/**
+ * POST /api/spotify/exchange-token
+ * Body: { code: string }
+ * Returns: Spotify token response + { success: true } on success.
+ */
 app.post('/api/spotify/exchange-token', async (req, res) => {
     try {
         const { code } = req.body;
@@ -112,6 +137,11 @@ app.post('/api/spotify/exchange-token', async (req, res) => {
     }
 });
 
+/**
+ * POST /api/spotify/refresh-token
+ * Body: { refresh_token: string }
+ * Returns: Spotify token response with refreshed access token.
+ */
 app.post('/api/spotify/refresh-token', async (req, res) => {
     try {
         const { refresh_token } = req.body;
@@ -140,6 +170,10 @@ app.post('/api/spotify/refresh-token', async (req, res) => {
 });
 
 // Current playback endpoint (READ-ONLY)
+/**
+ * GET /api/spotify/current-playback
+ * Returns the user's current playback state from Spotify. 401 if no token.
+ */
 app.get('/api/spotify/current-playback', async (req, res) => {
     try {
         if (!userTokens.access_token) {
@@ -161,6 +195,10 @@ app.get('/api/spotify/current-playback', async (req, res) => {
 });
 
 // Get queue endpoint (READ-ONLY)
+/**
+ * GET /api/spotify/queue
+ * Returns the user's queue and currently playing item when available.
+ */
 app.get('/api/spotify/queue', async (req, res) => {
     try {
         if (!userTokens.access_token) {
@@ -199,7 +237,11 @@ app.get('/api/spotify/queue', async (req, res) => {
     }
 });
 
-// Search endpoint
+/**
+ * GET /api/spotify/search
+ * Query: q (string), type (string, default track), limit (number)
+ * Returns: raw Spotify search results.
+ */
 app.get('/api/spotify/search', async (req, res) => {
     try {
         const token = req.headers.authorization?.replace('Bearer ', '') || userTokens.access_token;
@@ -219,6 +261,11 @@ app.get('/api/spotify/search', async (req, res) => {
 });
 
 // Add to queue endpoint (ALLOWED - this is safe for office use)
+/**
+ * POST /api/spotify/add-to-queue
+ * Body: { uri: string }
+ * Adds a track URI to the current user's queue.
+ */
 app.post('/api/spotify/add-to-queue', async (req, res) => {
     try {
         const token = req.headers.authorization?.replace('Bearer ', '') || userTokens.access_token;
@@ -237,24 +284,38 @@ app.post('/api/spotify/add-to-queue', async (req, res) => {
     }
 });
 
-// Logout endpoint
+/**
+ * POST /api/spotify/logout
+ * Clears in-memory tokens.
+ */
 app.post('/api/spotify/logout', (req, res) => {
     userTokens = {};
     res.json({ success: true });
 });
 
 // Debug endpoints
+/**
+ * POST /api/spotify/debug/clear-all-tokens
+ * Dev helper to clear any stored tokens.
+ */
 app.post('/api/spotify/debug/clear-all-tokens', (req, res) => {
     userTokens = {};
     res.json({ success: true });
 });
 
+/**
+ * POST /api/spotify/debug/force-unauthorized
+ * Dev helper to simulate unauthorized state by removing tokens.
+ */
 app.post('/api/spotify/debug/force-unauthorized', (req, res) => {
     userTokens = {};
     res.json({ success: true });
 });
 
-// Health check
+/**
+ * GET /api/health
+ * Simple liveness endpoint.
+ */
 app.get('/api/health', (req, res) => {
     res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });

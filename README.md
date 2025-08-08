@@ -1,162 +1,119 @@
 # Spotify Media Player
 
-A web-based Spotify media player that allows you to control your Spotify playback, search for tracks, and manage your queue.
+A web-based, office-friendly Spotify media player that lets users view the currently playing track, search for songs, and add songs to the queue. Includes Spotify OAuth, search, and add-to-queue functionality.
 
 ## Features
 
-- 🎵 **Playback Control**: Play, pause, skip, and control your Spotify playback
+- 🎵 **Playback Control**: Play, pause, skip (when permitted by Spotify API)
 - 🔍 **Track Search**: Search for tracks and add them to your queue
-- 📱 **Responsive Design**: Works on desktop and mobile devices
-- 🔐 **Secure Authentication**: OAuth 2.0 authentication with Spotify
-- 🎨 **Modern UI**: Beautiful, modern interface with Spotify's design language
+- 👀 **Now Playing**: View current song, album art, and progress
+- 🔐 **Spotify Auth**: OAuth 2.0 authorization flow
+- 🏢 **Office Mode**: Optional IP-based access restriction for office WiFi
+
+## Architecture Overview
+
+- **Spring Boot backend** (`backend/`): Full-featured API with persistent token storage (H2 for dev). Recommended for multi-user or on-prem setups.
+- **Node server** (`backend-server.js`): Lightweight server used by default in Render deployments; proxies safe Spotify endpoints and stores tokens in-memory.
+- **Frontend** (`frontend/`): Simple HTML/JS client served by the Node server in production.
 
 ## Prerequisites
 
-- Java 11 or higher
-- Node.js 14 or higher
+- Java 17+
 - Maven
-- Spotify Developer Account
-- SSL certificates for HTTPS (for localhost development)
+- Node.js 18+
+- Spotify Developer account and app
 
-## Setup
+## Spotify App Configuration
 
-### 1. Spotify App Configuration
+1. Go to the Spotify Developer Dashboard (`https://developer.spotify.com/dashboard`).
+2. Create an app and copy the Client ID and Client Secret.
+3. Add the redirect URI that matches your deployment:
+   - Local Node: `http://localhost:3000`
+   - Local Spring Boot + custom frontend: `https://localhost:3000`
+   - Render: your service URL (e.g., `https://spotify-media-player.onrender.com`)
 
-1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
-2. Create a new app
-3. Add `https://localhost:3000` to Redirect URIs
-4. Copy your Client ID and Client Secret
+## Quick Start (Node server + frontend)
 
-### 2. SSL Certificates
+```bash
+# From repo root
+npm install
+cd frontend && npm install && cd ..
 
-For local development, you need SSL certificates:
-- `localhost-key.pem` (private key)
-- `localhost.pem` (certificate)
+# Start the Node server (serves frontend and API)
+npm start
+# Visit http://localhost:3000
+```
 
-Place these files in the project root directory.
+Configure environment variables for the Node server before starting (in your shell or Render):
+- `SPOTIFY_CLIENT_ID`
+- `SPOTIFY_CLIENT_SECRET`
+- `SPOTIFY_REDIRECT_URI` (defaults to the Render URL in `render.yaml`)
 
-### 3. Configuration
+## Spring Boot Backend (optional)
 
-Update `backend/src/main/resources/application.properties`:
+Use this variant if you want persistent token storage and a typed API.
+
+```bash
+# Backend
+cd backend
+mvn spring-boot:run
+
+# Frontend (served separately)
+cd ../frontend
+node server.js
+```
+
+Set properties in `backend/src/main/resources/application.properties`:
 ```properties
 spotify.client.id=YOUR_CLIENT_ID
 spotify.client.secret=YOUR_CLIENT_SECRET
 spotify.redirect.uri=https://localhost:3000
 ```
 
-### 4. Installation
-
-1. **Install Backend Dependencies:**
-   ```bash
-   cd backend
-   mvn install
-   ```
-
-2. **Install Frontend Dependencies:**
-   ```bash
-   cd frontend
-   npm install
-   ```
-
-### 5. Running the Application
-
-**Option 1: Use the batch file (Windows)**
-```bash
-start-servers.bat
-```
-
-**Option 2: Manual startup**
-```bash
-# Terminal 1 - Backend
-cd backend
-mvn spring-boot:run
-
-# Terminal 2 - Frontend
-cd frontend
-node server.js
-```
-
-### 6. Access the Application
-
-Open your browser and navigate to: `https://localhost:3000`
-
-**Note**: You may see a security warning because of the self-signed certificate. Click "Advanced" and "Proceed to localhost".
-
-## Usage
-
-1. **Connect to Spotify**: Click "Connect to Spotify" and authorize the application
-2. **Control Playback**: Use the play/pause, previous, and next buttons
-3. **Search Tracks**: Use the search bar to find and add tracks to your queue
-4. **View Current Track**: See what's currently playing with album art and progress
-
-## Project Structure
-
-```
-spotify-media-player/
-├── backend/                 # Spring Boot backend
-│   ├── src/main/java/      # Java source code
-│   ├── src/main/resources/ # Configuration files
-│   └── pom.xml            # Maven dependencies
-├── frontend/               # Node.js frontend
-│   ├── index.html         # Main HTML file
-│   ├── server.js          # Express server
-│   └── package.json       # Node.js dependencies
-├── start-servers.bat      # Windows startup script
-├── localhost-key.pem      # SSL private key
-├── localhost.pem          # SSL certificate
-└── README.md              # This file
-```
-
 ## API Endpoints
 
-### Backend (http://localhost:8080/api/spotify)
+### Spring Boot (`http://localhost:8080/api/spotify`)
+- `GET /auth-url` – Get Spotify authorization URL
+- `POST /exchange-token` – Exchange authorization code for token
+- `GET /current-playback` – Current playback state
+- `POST /play` – Start playback
+- `POST /pause` – Pause playback
+- `POST /next` – Next track
+- `POST /previous` – Previous track
+- `GET /search` – Search tracks
+- `POST /add-to-queue` – Add track to queue
+- `POST /logout` – Invalidate session
 
-- `GET /auth-url` - Get Spotify authorization URL
-- `POST /exchange-token` - Exchange authorization code for access token
-- `GET /current-playback` - Get current playback state
-- `POST /play` - Start playback
-- `POST /pause` - Pause playback
-- `POST /next` - Skip to next track
-- `POST /previous` - Go to previous track
-- `GET /search` - Search for tracks
-- `POST /add-to-queue` - Add track to queue
-- `POST /logout` - Logout user
+### Node server (`http://localhost:3000/api/spotify`)
+- `GET /auth-url`
+- `POST /exchange-token`
+- `POST /refresh-token`
+- `GET /current-playback`
+- `GET /queue`
+- `GET /search`
+- `POST /add-to-queue`
+- `POST /logout`
 
-## Technologies Used
+## Office IP Restriction (optional)
 
-- **Backend**: Spring Boot, Java, Maven
-- **Frontend**: HTML5, CSS3, JavaScript (ES6+), Express.js
-- **Authentication**: OAuth 2.0 with Spotify
-- **Database**: H2 (in-memory for development)
+See `IP_RESTRICTION_GUIDE.md` for enabling office-only access via CIDR ranges. Update `ALLOWED_IP_RANGES` in `backend-server.js`.
+
+## Developer Notes
+
+- The Node server stores tokens in-memory and is meant for single-user/shared-display office scenarios. For multiple users or durable sessions, use the Spring Boot backend.
+- CORS is enabled for localhost by default. Adjust allowed origins in `SecurityConfig` and `CorsConfig` for production.
+- The Spring backend uses H2 for development; swap to a persistent DB for production as needed.
 
 ## Troubleshooting
 
-### Common Issues
-
-1. **SSL Certificate Errors**: Make sure your SSL certificates are in the project root
-2. **Port Already in Use**: Stop other services using ports 8080 or 3000
-3. **Authentication Issues**: Clear browser cache and try again
-4. **CORS Errors**: Check that the CORS configuration matches your setup
-
-### Debug Mode
-
-The application includes debug buttons for development:
-- **Logout (Debug)**: Clear current session
-- **Clear All Tokens (Debug)**: Remove all stored tokens
-- **Force Logout (Debug)**: Force authentication reset
+- SSL warnings on localhost: use self-signed certs or run over HTTP for local dev where appropriate.
+- 401 Unauthorized: token may be absent or expired; re-authenticate.
+- CORS errors: update allowed origins in backend configs.
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+- Fork → Feature Branch → Edits → Tests → PR
 
 ## License
 
-This project is for educational purposes. Please respect Spotify's terms of service and API usage guidelines.
-
-## Support
-
-If you encounter any issues, please check the troubleshooting section or create an issue in the repository.
+Educational use only. Follow Spotify’s terms and API policies.

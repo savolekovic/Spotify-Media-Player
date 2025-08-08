@@ -4,6 +4,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 
+/**
+ * Centralized configuration for Spotify OAuth and Web API endpoints.
+ *
+ * Values are sourced from application properties or environment variables.
+ * Note: clientSecret must be provided. clientId and redirectUri have sensible defaults
+ * for local development.
+ */
 @Configuration
 @Component
 public class SpotifyConfig {

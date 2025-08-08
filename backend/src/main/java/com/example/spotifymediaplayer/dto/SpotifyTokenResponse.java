@@ -2,6 +2,10 @@ package com.example.spotifymediaplayer.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+/**
+ * POJO mapped to the response from Spotify's /api/token endpoint.
+ * Fields are annotated to match snake_case JSON returned by Spotify.
+ */
 public class SpotifyTokenResponse {
     
     @JsonProperty("access_token")
