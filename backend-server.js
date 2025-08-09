@@ -4,6 +4,7 @@ const axios = require('axios');
 const path = require('path');
 const fs = require('fs');
 const { officeOnly, DEFAULT_ALLOWED_IP_RANGES } = require('./middleware/officeOnly');
+const { allowedIpRanges } = require('./config/allowedIps');
 
 /**
  * Lightweight Node.js server used in the Render deployment and for local dev.
@@ -27,15 +28,19 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Office-only access is currently DISABLED.
-// To re-enable, uncomment the block below.
-// const officeOnlyMiddleware = officeOnly({ allowedIpRanges: DEFAULT_ALLOWED_IP_RANGES });
-// app.use((req, res, next) => {
-//     if (req.path === '/api/health') {
-//         return next(); // Skip IP check for health endpoint
-//     }
-//     return officeOnlyMiddleware(req, res, next);
-// });
+// Ensure correct client IP when behind proxies/load balancers
+// In Render/Heroku/etc., this should be enabled so req.ip/req.ips reflect X-Forwarded-For
+app.set('trust proxy', true);
+
+// Office-only access middleware (enabled)
+// Uses allowed ranges from config/allowedIps.js; falls back to defaults if not provided
+const officeOnlyMiddleware = officeOnly({ allowedIpRanges: allowedIpRanges && allowedIpRanges.length ? allowedIpRanges : DEFAULT_ALLOWED_IP_RANGES });
+app.use((req, res, next) => {
+    if (req.path === '/api/health') {
+        return next(); // Skip IP check for health endpoint
+    }
+    return officeOnlyMiddleware(req, res, next);
+});
 
 // Serve static files from frontend directory
 app.use(express.static(path.join(__dirname, 'frontend')));
@@ -284,5 +289,5 @@ app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     console.log(`Spotify Client ID: ${SPOTIFY_CLIENT_ID ? 'Set' : 'Not set'}`);
     console.log(`Spotify Client Secret: ${SPOTIFY_CLIENT_SECRET ? 'Set' : 'Not set'}`);
-    console.log('IP filtering is currently DISABLED (office-only check is OFF)');
+    console.log('IP filtering is ENABLED (office-only check is ON)');
 });
