@@ -296,7 +296,7 @@
             playbackInterval = setInterval(() => {
                 getCurrentPlayback();
                 getQueue();
-            }, 5000); // Reduced frequency to 5 seconds
+            }, 1000); // MODIFIED: Poll every 1s for more frequent updates
         }
 
         function showAuthSection() {

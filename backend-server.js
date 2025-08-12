@@ -32,8 +32,9 @@ app.use(express.json());
 // In Render/Heroku/etc., this should be enabled so req.ip/req.ips reflect X-Forwarded-For
 app.set('trust proxy', true);
 
-// Office-only access middleware (enabled)
-// Uses allowed ranges from config/allowedIps.js; falls back to defaults if not provided
+// Office-only access middleware (DISABLED) - MODIFIED: IP restriction disabled to allow access from anywhere
+// To re-enable, uncomment the block below or see middleware/officeOnly-usage.example.js
+/*
 const officeOnlyMiddleware = officeOnly({ allowedIpRanges: allowedIpRanges && allowedIpRanges.length ? allowedIpRanges : DEFAULT_ALLOWED_IP_RANGES });
 app.use((req, res, next) => {
     if (req.path === '/api/health') {
@@ -41,6 +42,7 @@ app.use((req, res, next) => {
     }
     return officeOnlyMiddleware(req, res, next);
 });
+*/
 
 // Serve static files from frontend directory
 app.use(express.static(path.join(__dirname, 'frontend')));
@@ -289,5 +291,5 @@ app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     console.log(`Spotify Client ID: ${SPOTIFY_CLIENT_ID ? 'Set' : 'Not set'}`);
     console.log(`Spotify Client Secret: ${SPOTIFY_CLIENT_SECRET ? 'Set' : 'Not set'}`);
-    console.log('IP filtering is ENABLED (office-only check is ON)');
+    console.log('IP filtering is DISABLED (office-only check is OFF) - MODIFIED');
 });
