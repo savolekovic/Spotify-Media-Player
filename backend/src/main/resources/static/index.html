@@ -508,7 +508,7 @@
             if (playbackInterval) {
                 clearInterval(playbackInterval);
             }
-            playbackInterval = setInterval(getCurrentPlayback, 3000);
+            playbackInterval = setInterval(getCurrentPlayback, 1000); // MODIFIED: Poll every 1s
         }
 
         // Stop polling
